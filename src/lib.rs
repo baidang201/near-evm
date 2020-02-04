@@ -166,10 +166,7 @@ impl EvmContract {
             panic!("insufficient funds");
         }
 
-        /*
-        panicked at 'called `Result::unwrap()` on an `Err` value: HostError(GasExceeded)',
-        near-bindgen/src/environment/mocked_blockchain.rs:252:9
-        */
+        // Callback doesn't run as far as I can tell
         Promise::new(recipient)
             .transfer(amount)
             .then(callback::finalize_retrieve_near(
@@ -177,12 +174,13 @@ impl EvmContract {
                 amount.to_be_bytes().to_vec(),
                 &env::current_account_id(),
                 0,
-                2u64.pow(63),
+                (env::prepaid_gas() - env::used_gas()) / 2,
             ));
     }
 
     pub fn finalize_retrieve_near(&mut self, addr: Address, amount: Vec<u8>) {
         let mut bin = [0u8; 16];
+        println!("in CB {:?} {:?}", &addr, &amount);
         bin.copy_from_slice(&amount[..]);
         // panics if called externally
         assert_eq!(env::current_account_id(), env::predecessor_account_id());
